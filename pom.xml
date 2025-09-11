@@ -17,7 +17,26 @@
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
-	</dependencies>
+
+        <dependency>
+            <groupId>com.jpmc</groupId>
+            <artifactId>midas-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-jpa -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+
+    </dependencies>
 
 	<build>
 		<plugins>
