@@ -10,7 +10,7 @@ public class KafkaProducer {
     private final String topic;
     private final KafkaTemplate<String, Transaction> kafkaTemplate;
 
-    public KafkaProducer(@Value("${general.kafka-topic}") String topic, KafkaTemplate<String, Transaction> kafkaTemplate) {
+    public KafkaProducer(@Value("${general.kafka-topic:test-topic}") String topic, KafkaTemplate<String, Transaction> kafkaTemplate) {
         this.topic = topic;
         this.kafkaTemplate = kafkaTemplate;
     }
