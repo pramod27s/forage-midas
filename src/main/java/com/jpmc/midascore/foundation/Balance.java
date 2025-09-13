@@ -7,6 +7,8 @@ public class Balance {
     private float amount;
 
     public Balance() {
+
+
     }
 
     public Balance(float amount) {
