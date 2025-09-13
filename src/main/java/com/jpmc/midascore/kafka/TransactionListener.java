@@ -3,6 +3,7 @@ package com.jpmc.midascore.kafka;
 import com.jpmc.midascore.entity.TransactionRecord;
 import com.jpmc.midascore.entity.UserRecord;
 import com.jpmc.midascore.foundation.Transaction;
+import com.jpmc.midascore.incentive.IncentiveClient;
 import com.jpmc.midascore.repository.TransactionRepository;
 import com.jpmc.midascore.repository.UserRepository;
 import org.slf4j.Logger;
@@ -21,10 +22,12 @@ public class TransactionListener {
     private final List<Transaction> received = new CopyOnWriteArrayList<>();
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final IncentiveClient incentiveClient;
 
-    public TransactionListener(UserRepository userRepository, TransactionRepository transactionRepository) {
+    public TransactionListener(UserRepository userRepository, TransactionRepository transactionRepository, IncentiveClient incentiveClient) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.incentiveClient = incentiveClient;
     }
 
     @KafkaListener(topics = "${general.kafka-topic}", groupId = "midas-core")
@@ -39,19 +42,25 @@ public class TransactionListener {
             log.debug("Discarding transaction - invalid user(s): {}", transaction);
             return; // invalid ids
         }
+        if (transaction.getAmount() <= 0f) {
+            log.debug("Discarding transaction - non-positive amount: {}", transaction);
+            return; // non-positive amount
+        }
         if (sender.getBalance() < transaction.getAmount()) {
             log.debug("Discarding transaction - insufficient funds: {} (sender balance: {})", transaction, sender.getBalance());
             return; // insufficient funds
         }
-        // Adjust balances
+        // Fetch incentive before mutating balances
+        float incentive = incentiveClient.fetchIncentive(transaction);
+        // Adjust balances (sender loses only amount, recipient gains amount + incentive)
         sender.setBalance(sender.getBalance() - transaction.getAmount());
-        recipient.setBalance(recipient.getBalance() + transaction.getAmount());
+        recipient.setBalance(recipient.getBalance() + transaction.getAmount() + incentive);
         userRepository.save(sender);
         userRepository.save(recipient);
         // Persist transaction record
-        TransactionRecord record = new TransactionRecord(sender, recipient, transaction.getAmount());
+        TransactionRecord record = new TransactionRecord(sender, recipient, transaction.getAmount(), incentive);
         transactionRepository.save(record);
-        log.debug("Persisted transaction record id={} amount={} senderBalanceAfter={} recipientBalanceAfter={}", record.getId(), record.getAmount(), sender.getBalance(), recipient.getBalance());
+        log.debug("Persisted transaction id={} amount={} incentive={} senderBal={} recipientBal={}", record.getId(), record.getAmount(), record.getIncentiveAmount(), sender.getBalance(), recipient.getBalance());
     }
 
     public List<Transaction> getReceived() {
